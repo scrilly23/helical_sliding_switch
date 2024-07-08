@@ -1,10 +1,13 @@
 import json
 from pyrosetta.rosetta.protocols.moves import DsspMover
 from pyrosetta.rosetta.core.select.residue_selector import ResidueIndexSelector, NotResidueSelector, OrResidueSelector
-from pyrosetta.rosetta.protocols.analysis import RMSDMetric
+from pyrosetta.rosetta.core.scoring import *
+from pyrosetta.rosetta.core import *
+from pyrosetta.rosetta.core.simple_metrics.metrics import RMSDMetric
 
 ####FUNCTIONS####
 def get_loop_resn(pose):
+    #TODO-handle exception if there are no loops
     '''get loop residue numbers of pose and return as list
 
     Parameters:
@@ -40,9 +43,9 @@ def calculate_rmsd_no_loops(rosetta_pose, af_pose):
     loop_resn, loop_resn_rosetta = get_loop_resn(rosetta_pose)
 
     #select non-loop residues of rosetta pose
-    loop_resn_str = [str(x) for x in loop_resn_rosetta]
     loop_selector = ResidueIndexSelector()
-    loop_selector.set_index(*loop_resn_str)
+    for i in loop_resn_rosetta:
+        loop_selector.append_index(i)
 
     non_loop_selector = NotResidueSelector(loop_selector)
 
@@ -54,14 +57,13 @@ def calculate_rmsd_no_loops(rosetta_pose, af_pose):
     rmsd_metric.set_run_superimpose(True)
     rmsd_metric.set_residue_selector_reference(non_loop_selector)
     rmsd_metric.set_residue_selector(non_loop_selector)
-    rmsd_metric.set_rmsd_type(pyrosetta.rosetta.core.scoring.rmsd_atoms.
-                                        rmsd_protein_bb_heavy_including_O)
+    rmsd_metric.set_rmsd_type(rmsd_atoms.rmsd_protein_bb_heavy_including_O)
     all_rmsd = rmsd_metric.calculate(af_pose)
     
     return all_rmsd
 
 
-def calculate_cc_rmsd(rosetta_pose, af_pose, loop_len=0):
+def calculate_cc_rmsd(rosetta_pose, af_pose):
     '''aligns two cc poses and calculates RMSD over non-loop residues
 
     Parameters:
@@ -71,10 +73,12 @@ def calculate_cc_rmsd(rosetta_pose, af_pose, loop_len=0):
     Returns:
     all_rmsd (flt): bb heavy atom rmsd over non-loop residues
     '''
-
+    #calculate loop length by difference in length between poses
+    loop_len = len(af_pose.sequence()) - len(rosetta_pose.sequence())
+    
     #get resn rosetta pose helices stop and start
         #TODO-generalize this for any number of helices
-    jump_resn = pyrosetta.rosetta.core.pose.chain_end_res(rosetta_pose)
+    jump_resn = pose.chain_end_res(rosetta_pose)
     h1_start = 1
     h1_end = jump_resn[1]
     h2_start = jump_resn[1]+1
@@ -101,8 +105,7 @@ def calculate_cc_rmsd(rosetta_pose, af_pose, loop_len=0):
     all_rmsd_metric.set_run_superimpose(True)
     all_rmsd_metric.set_residue_selector_reference(cc_ref_res_sel)
     all_rmsd_metric.set_residue_selector(or_res_sel)
-    all_rmsd_metric.set_rmsd_type(pyrosetta.rosetta.core.scoring.rmsd_atoms.
-                                        rmsd_protein_bb_heavy_including_O)
+    all_rmsd_metric.set_rmsd_type(rmsd_atoms.rmsd_protein_bb_heavy_including_O)
     all_rmsd = all_rmsd_metric.calculate(af_pose)
 
     return all_rmsd
@@ -174,7 +177,7 @@ def calculate_avg_pae(json_file_path, loop_resn=None):
 
 
 
-
+#TODO-add def main, Karson rmsd, Dom rmsd
 
 
 
