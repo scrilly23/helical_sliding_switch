@@ -223,6 +223,7 @@ def get_motif_res_in_heptad(input_df, motif = 'SRLEEELRRRLTE'):
     for index, row in input_df.iterrows():
         h2_seq = row['h2_seq']
         h2_reg = row['h2_reg']
+        new_h2_reg = heptad_to_upper(h2_reg)
         
         motif_start = h2_seq.find(motif)
         motif_end = motif_start + motif_len
@@ -230,8 +231,8 @@ def get_motif_res_in_heptad(input_df, motif = 'SRLEEELRRRLTE'):
         motif_res_in_heptad = []
 
         for i in range(motif_start, motif_end):
-            if h2_reg[i] in ('a', 'b', 'c', 'd', 'e', 'f', 'g'):
-                motif_res_in_heptad.append(h2_seq[i])
+            if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
+                motif_res_in_heptad.append(h2_seq[i]) #TODO-append motif res in heptad even if full motif detected in helical region
             else:
                 continue
 
@@ -320,17 +321,20 @@ if __name__ == '__main__':
     og_num_seqs = socket_call_df.shape[0]
 
     #filter out designs without Socket2-detected kih
-    df = socket_call_df.query('socket_call == 1').copy()
+    socket_call_df = socket_call_df.query('socket_call == 1').copy()
 
-    socket_pass_num_seqs = df.shape[0]
+    socket_pass_num_seqs = socket_call_df.shape[0]
 
     print(file_header)
     print(f'{socket_pass_num_seqs}/{og_num_seqs} seqs have kih interactions detected by Socket2.')
 
-    df = get_num_heptads(df)
-    df = get_num_ad(df)
-    df = get_heptad_res_identities(df)
-    df = get_motif_res_in_heptad(df)
+    df = get_num_heptads(socket_call_df)
+    df = get_num_ad(socket_call_df)
+    df = get_heptad_res_identities(socket_call_df)
+    df = get_motif_res_in_heptad(socket_call_df)
+    print(df)
+    print(df.columns)
+
 
     df.to_csv(f'{outdir}/{file_header}_all_socket_outputs.csv')
 
