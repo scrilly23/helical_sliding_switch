@@ -224,20 +224,56 @@ def get_motif_res_in_heptad(input_df, motif = 'SRLEEELRRRLTE'):
         h2_seq = row['h2_seq']
         h2_reg = row['h2_reg']
         new_h2_reg = heptad_to_upper(h2_reg)
-        
-        motif_start = h2_seq.find(motif)
-        motif_end = motif_start + motif_len
 
         motif_res_in_heptad = []
 
-        for i in range(motif_start, motif_end):
-            if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
-                motif_res_in_heptad.append(h2_seq[i]) #TODO-append motif res in heptad even if full motif detected in helical region
-            else:
-                continue
+        motif_start = h2_seq.find(motif)
 
-        motif_res_in_heptad_string = ''.join(motif_res_in_heptad)
-        seq_motif_res_dict[h2_seq] = motif_res_in_heptad_string
+        if motif_start != -1:
+            motif_end = motif_start + motif_len
+
+            for i in range(motif_start, motif_end):
+                if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
+                    motif_res_in_heptad.append(h2_seq[i]) 
+                else:
+                    continue
+
+            motif_res_in_heptad_string = ''.join(motif_res_in_heptad)
+            seq_motif_res_dict[h2_seq] = motif_res_in_heptad_string
+        
+        #handle case where full motif not detected in helical region
+        elif motif_start == -1:
+            sub_motif_start = len(h2_seq) - motif_len
+            sub_motif_end = len(h2_seq)
+            starting_sub_motif = motif[0:(sub_motif_end - sub_motif_start + 1)]
+
+            j = 1
+            for i in range(sub_motif_start, sub_motif_end):
+                if h2_seq[i] != motif[0]:
+                    pass
+                elif h2_seq[i] == motif[0]: 
+                    starting_sub_motif = motif[0:-j]
+                    
+                    if starting_sub_motif in h2_seq:
+                        motif = starting_sub_motif
+                    else:
+                        pass
+                
+                j += 1
+            
+            motif_start = h2_seq.find(motif)
+            motif_len = len(motif)
+
+            motif_end = motif_start + motif_len
+
+            for i in range(motif_start, motif_end):
+                if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
+                    motif_res_in_heptad.append(h2_seq[i])
+                else:
+                    continue
+
+                motif_res_in_heptad_string = ''.join(motif_res_in_heptad)
+                seq_motif_res_dict[h2_seq] = motif_res_in_heptad_string
 
     seq_motif_res_df = df_from_dict(seq_motif_res_dict, index_name='h2_seq', column_name='motif_res_in_heptad')
     new_df = input_df.merge(seq_motif_res_df, how='left', on='h2_seq')
