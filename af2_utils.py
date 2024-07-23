@@ -182,10 +182,10 @@ def calculate_avg_pae(json_file_path, loop_resn=None):
     f = open(json_file_path,)
     data = json.load(f)
     pae_vals = data['pae']
+    avg_pae_vals = []
 
     #pae without excluding any regions
     if loop_resn == None:
-        avg_pae_vals = []
         for paes in pae_vals:
             avg_pae = calculate_average(paes)
             avg_pae_vals.append(avg_pae)
@@ -316,10 +316,7 @@ if __name__ == "__main__":
             avg_plddt_dict[colab_filename] = avg_plddt
 
             #get avg pae across non-loop residues
-            pae_file = colab_file.split('unrelaxed')[0]
-            pae_file = pae_file + 'predicted_aligned_error_v1.json'
-
-            avg_pae = calculate_avg_pae(colab_outdir+'/'+pae_file, loop_residues)
+            avg_pae = calculate_avg_pae(colab_outdir+'/'+json_file, loop_residues)
 
             avg_pae_dict[colab_filename] = avg_pae
     
