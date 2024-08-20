@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import argparse
 
 
 ####FUNCTIONS####
@@ -175,7 +176,7 @@ def get_heptad_res_identities(input_df):
 
         h1_dict = make_heptad_strings(new_h1_reg, h1_seq)
         h1_df = pd.DataFrame([h1_dict])
-        h1_df['h1_seq'] = h1_seq
+        h1_df['design_id'] = row['design_id']
 
         h1_dfs_to_concat.append(h1_df)
 
@@ -186,16 +187,16 @@ def get_heptad_res_identities(input_df):
 
         h2_dict = make_heptad_strings(new_h2_reg, h2_seq)
         h2_df = pd.DataFrame([h2_dict])
-        h2_df['h1_seq'] = h1_seq
+        h2_df['design_id'] = row['design_id']
 
         h2_dfs_to_concat.append(h2_df)
     
     h1_dfs = pd.concat(h1_dfs_to_concat)
     h2_dfs = pd.concat(h2_dfs_to_concat)
 
-    h1_h2_df = h1_dfs.merge(h2_dfs, on='h1_seq', suffixes=['_h1', '_h2'])
+    h1_h2_df = h1_dfs.merge(h2_dfs, on='design_id', suffixes=['_h1', '_h2'])
 
-    new_df = input_df.merge(h1_h2_df, on='h1_seq')
+    new_df = input_df.merge(h1_h2_df, on='design_id')
 
     return new_df
 
@@ -217,66 +218,33 @@ def get_motif_res_in_heptad(input_df, motif = 'SRLEEELRRRLTE'):
     participating in the heptad interactions 
     and the number of motif residues participating in the heptad interactions. 
     '''
-    motif_len = len(motif)
 
     seq_motif_res_dict = {}
+
     for index, row in input_df.iterrows():
+        motif_res_in_heptad = ''
         h2_seq = row['h2_seq']
         h2_reg = row['h2_reg']
         new_h2_reg = heptad_to_upper(h2_reg)
 
-        motif_res_in_heptad = []
-
         motif_start = h2_seq.find(motif)
 
         if motif_start != -1:
-            motif_end = motif_start + motif_len
+            motif_end = motif_start + len(motif)
 
             for i in range(motif_start, motif_end):
                 if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
-                    motif_res_in_heptad.append(h2_seq[i]) 
+                    motif_res_in_heptad = motif_res_in_heptad + h2_seq[i] 
                 else:
-                    continue
-
-            motif_res_in_heptad_string = ''.join(motif_res_in_heptad)
-            seq_motif_res_dict[h2_seq] = motif_res_in_heptad_string
-        
-        #handle case where full motif not detected in helical region
-        elif motif_start == -1:
-            sub_motif_start = len(h2_seq) - motif_len
-            sub_motif_end = len(h2_seq)
-            starting_sub_motif = motif[0:(sub_motif_end - sub_motif_start + 1)]
-
-            j = 1
-            for i in range(sub_motif_start, sub_motif_end):
-                if h2_seq[i] != motif[0]:
                     pass
-                elif h2_seq[i] == motif[0]: 
-                    starting_sub_motif = motif[0:-j]
-                    
-                    if starting_sub_motif in h2_seq:
-                        motif = starting_sub_motif
-                    else:
-                        pass
-                
-                j += 1
-            
-            motif_start = h2_seq.find(motif)
-            motif_len = len(motif)
+        
+        elif motif_start == -1: #TODO-handle case where full motif not detected in helical region
+            motif_res_in_heptad = 'NA'
 
-            motif_end = motif_start + motif_len
+        seq_motif_res_dict[row['design_id']] = motif_res_in_heptad
 
-            for i in range(motif_start, motif_end):
-                if new_h2_reg[i] in ('A', 'B', 'C', 'D', 'E', 'F', 'G'):
-                    motif_res_in_heptad.append(h2_seq[i])
-                else:
-                    continue
-
-                motif_res_in_heptad_string = ''.join(motif_res_in_heptad)
-                seq_motif_res_dict[h2_seq] = motif_res_in_heptad_string
-
-    seq_motif_res_df = df_from_dict(seq_motif_res_dict, index_name='h2_seq', column_name='motif_res_in_heptad')
-    new_df = input_df.merge(seq_motif_res_df, how='left', on='h2_seq')
+    seq_motif_res_df = df_from_dict(seq_motif_res_dict, index_name='design_id', column_name='motif_res_in_heptad')
+    new_df = input_df.merge(seq_motif_res_df, how='left', on='design_id')
     new_df['num_motif_res_in_heptad'] = new_df['motif_res_in_heptad'].str.len()
 
     return new_df
@@ -285,12 +253,20 @@ def get_motif_res_in_heptad(input_df, motif = 'SRLEEELRRRLTE'):
 if __name__ == '__main__':
 
 #####USER DEFINED INPUTS#####
-    indir='/wynton/home/kortemme/scrilly/helix_sliding/20240517_mpnn_msd_t_01_cf_array'
-    #indir = '/Users/stephaniecrilly/Kortemme_lab/helix_sliding/20240715_socket_utils_test'
-    pdb_header = '13632_' #TODO-need to update this to be more general  
-    outdir = '/wynton/home/kortemme/scrilly/helix_sliding/20240517_mpnn_msd_t_01_cf_array'
-    #outdir = '/Users/stephaniecrilly/Kortemme_lab/helix_sliding/20240715_socket_utils_test'
-    file_header = 'MSD_13632_07144'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--indir", help="path to directory with socket output files")
+    parser.add_argument("--pdbheader", help="header of pdb files to search socket outputs for")
+    parser.add_argument("--outdir", help="path to directory to dump summary csvs")
+    parser.add_argument("--fileheader", help="header for output files")
+
+    args = parser.parse_args()
+
+    indir = args.indir
+    pdb_header = args.pdbheader
+    outdir= args.outdir
+    file_header = args.fileheader
+
 #####
 
     cc_dict = {}
@@ -303,7 +279,7 @@ if __name__ == '__main__':
 
     for path, subdirs, files in os.walk(indir):
         for file in files:
-            if '.sh.o' in file:
+            if 'socket_msd_bbs.sh.o' in file:
                 fh = open(path+'/'+file, encoding='utf-8', errors='ignore')
                 fhread = fh.readlines()
 
@@ -366,11 +342,10 @@ if __name__ == '__main__':
 
     df = get_num_heptads(socket_call_df)
     df = get_num_ad(socket_call_df)
-    df = get_heptad_res_identities(socket_call_df)
     df = get_motif_res_in_heptad(socket_call_df)
-    print(df)
-    print(df.columns)
+    df2 = get_heptad_res_identities(socket_call_df)
 
+    df = df.merge(df2, on=['design_id', 'socket_call', 'h1_seq', 'h1_reg', 'h2_seq', 'h2_reg', 'h1_non_canon_num_res', 'h2_non_canon_num_res'], how='left')
 
     df.to_csv(f'{outdir}/{file_header}_all_socket_outputs.csv')
 
