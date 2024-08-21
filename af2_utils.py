@@ -1,6 +1,7 @@
 import json
 import os
 import pandas as pd
+import argparse
 from pyrosetta import init
 import pyrosetta.distributed.dask
 from pyrosetta.rosetta.protocols.moves import DsspMover
@@ -275,8 +276,15 @@ if __name__ == "__main__":
     #get af output of all pdb files, align to
     min0_path = '/wynton/home/kortemme/scrilly/helix_sliding/20230626_new_mins/min0_threads_dir/20230321_13632_ALFA_52.pdb'
     min2_path = '/wynton/home/kortemme/scrilly/helix_sliding/20230626_new_mins/min2_threads_dir/20230321_07144_ALFA_52.pdb'
-    colab_outdir = '/wynton/home/kortemme/scrilly/helix_sliding/20240517_mpnn_msd_t_01_cf_array'
-    outdir = '/wynton/home/kortemme/scrilly/helix_sliding/20240517_mpnn_msd_t_01_cf_array'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--colaboutdir", help="path to directory with colab predictions")
+    parser.add_argument("--outdir", help="path to directory to dump summary csvs")
+
+    args = parser.parse_args()
+
+    colab_outdir= args.colaboutdir
+    outdir= args.outdir
     ####
 
     #load starting state poses

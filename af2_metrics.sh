@@ -8,5 +8,8 @@
 
 conda activate /wynton/home/kortemme/scrilly/proteindesign/proteindesign
 
+DIR=$(pwd)
 
-python af2_utils.py
+python af2_utils.py \
+	--colaboutdir $DIR \
+	--outdir $DIR
