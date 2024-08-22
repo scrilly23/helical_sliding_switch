@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import argparse
 
@@ -339,8 +340,11 @@ if __name__ == '__main__':
 
     print(file_header)
     print(f'{socket_pass_num_seqs}/{og_num_seqs} seqs have kih interactions detected by Socket2.')
+    
+    #filter out designs with empty h2_reg
+    socket_call_df['h2_reg'] = socket_call_df['h2_reg'].replace('', np.nan)
+    socket_call_df = socket_call_df.dropna(subset=['h2_reg'])
 
-    df = get_num_heptads(socket_call_df)
     df = get_num_ad(socket_call_df)
     df = get_motif_res_in_heptad(socket_call_df)
     df2 = get_heptad_res_identities(socket_call_df)
