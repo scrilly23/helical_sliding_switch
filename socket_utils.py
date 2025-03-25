@@ -99,8 +99,8 @@ def get_num_ad(input_df):
         h1_ad = h1_a + h1_d
         h1_num_ad_dict[row['design_id']] = h1_ad
     
-        h2_a = row['h1_reg'].count('a')
-        h2_d = row['h1_reg'].count('d')
+        h2_a = row['h2_reg'].count('a')
+        h2_d = row['h2_reg'].count('d')
         h2_ad = h2_a + h2_d
         h2_num_ad_dict[row['design_id']] = h2_ad
 
@@ -345,7 +345,13 @@ if __name__ == '__main__':
     print(file_header)
     print(f'{socket_pass_num_seqs}/{og_num_seqs} seqs have kih interactions detected by Socket2.')
     
-    #filter out designs with empty h2_reg
+    #filter out designs with empty h1 or h2_reg
+    #this happens when the design is predicted with >2 helices
+    #and cc is predicted between a subset of them
+    #TODO: find a more robust solution (perhaps num helical stretches)
+    socket_call_df['h1_reg'] = socket_call_df['h1_reg'].replace('', np.nan)
+    socket_call_df = socket_call_df.dropna(subset=['h1_reg'])
+    
     socket_call_df['h2_reg'] = socket_call_df['h2_reg'].replace('', np.nan)
     socket_call_df = socket_call_df.dropna(subset=['h2_reg'])
 
