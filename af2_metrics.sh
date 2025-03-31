@@ -12,4 +12,6 @@ DIR=$(pwd)
 
 python af2_utils.py \
 	--colaboutdir $DIR \
-	--outdir $DIR
+	--outdir $DIR \
+	--min0_bb_dir "/wynton/home/kortemme/scrilly/helix_sliding/20230710_min_bbs_for_mpnn/min2_53_threads" \
+	--single_state  

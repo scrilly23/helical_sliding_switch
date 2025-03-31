@@ -279,7 +279,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--colaboutdir", help="path to directory with colab predictions")
+    parser.add_argument("--min0_bb_dir", help="path to directory with min0 bb poses")
+    parser.add_argument("--min2_bb_dir", help="path to directory with min2 bb poses")
     parser.add_argument("--outdir", help="path to directory to dump summary csvs")
+    parser.add_argument('--single_state', action='store_true')
+    parser.add_argument('--multi_state', action='store_true')
 
     args = parser.parse_args()
 
@@ -287,57 +291,118 @@ if __name__ == "__main__":
     outdir= args.outdir
     ####
 
-    #load starting state poses
-    min0_pose = pyrosetta.pose_from_pdb(min0_path)
-    min2_pose = pyrosetta.pose_from_pdb(min2_path)
+    if args.single_state is True:
+        #do ssd processing
 
-    colab_file_list = os.listdir(colab_outdir)
+        min_rmsd_dict = {}
+        avg_plddt_dict = {}
+        avg_pae_dict = {}
 
-    min0_rmsd_dict = {}
-    min2_rmsd_dict = {}
-    avg_plddt_dict = {}
-    avg_pae_dict = {}
+        #list files
+        colab_file_list = os.listdir(colab_outdir)
+        min_file_list = os.listdir(args.min0_bb_dir)
 
-    #calculate RMSD to min0 and min2 states
-    for colab_file in colab_file_list:
+        # clfold pdb name: min1 then min 2: 20221010_30411_loop20221010_35251_loop_9_unrelaxed_rank_1_model_3.pdb
+        #input pdb name: 20221010_30411_loop.pdb
 
-        if colab_file.endswith('.pdb'):
-            #get rmsd
-            colab_pose = pyrosetta.pose_from_pdb(colab_outdir+'/'+colab_file) #af_pose
+        min1_dfs_to_concat = []
 
-            colab_filename = colab_file.split('.')[0] #file
+        #220230321_16351_ALFA_52_9_unrelaxed_rank_005_alphafold2_multimer_v3_model_1_seed_000.pdb
+        #calculate RMSD to min1
+        for colab_file in colab_file_list:
+            if colab_file.endswith('.pdb'):
+                #get_colab_pose
+                colab_pose = pyrosetta.pose_from_pdb(colab_outdir+'/'+colab_file) #af_pose
 
-            rmsd_to_min0 = calculate_cc_rmsd(min0_pose, colab_pose)
-            rmsd_to_min2 = calculate_cc_rmsd(min2_pose, colab_pose)
-            
-            min0_rmsd_dict[colab_filename] = rmsd_to_min0
-            min2_rmsd_dict[colab_filename] = rmsd_to_min2
+                #get rosetta pose
+                colab_filename = colab_file.split('.')[0] #file
+                min_bb = colab_filename[0:22] #TODO: harcoded, fix with regex
+                min_bb_filename = str(min_bb+'.pdb')
+                for min_file in min_file_list:
+                    if min_file == min_bb_filename:
+                        min_pose = pyrosetta.pose_from_pdb(args.min0_bb_dir+'/'+min_file) #cc_pose
 
-            #get avg plddt across non-loop residues
-            loop_residues, rosetta_loop_residues = get_loop_resn(colab_pose)
+                        #get rmsd to rosetta pose over helical regions
+                        rmsd_to_min = calculate_cc_rmsd(min_pose, colab_pose)
+                        min_rmsd_dict[colab_filename] = rmsd_to_min
 
-            json_file = colab_file.replace('.pdb', '.json')
-            json_file = json_file.replace('unrelaxed', 'scores')
+                        #get avg plddt across non-loop residues
+                        loop_residues, rosetta_loop_residues = get_loop_resn(colab_pose)
 
-            avg_plddt = calculate_avg_plddt(colab_outdir+'/'+json_file, loop_residues)
+                        json_file = colab_file.replace('.pdb', '.json')
+                        json_file = json_file.replace('unrelaxed', 'scores')
 
-            avg_plddt_dict[colab_filename] = avg_plddt
+                        avg_plddt = calculate_avg_plddt(colab_outdir+'/'+json_file, loop_residues)
+                        avg_plddt_dict[colab_filename] = avg_plddt
 
-            #get avg pae across non-loop residues
-            avg_pae = calculate_avg_pae(colab_outdir+'/'+json_file, loop_residues)
+                        #get avg pae across non-loop residues
+                        avg_pae = calculate_avg_pae(colab_outdir+'/'+json_file, loop_residues)
+                        avg_pae_dict[colab_filename] = avg_pae
 
-            avg_pae_dict[colab_filename] = avg_pae
-    
-    min0_rmsd_df = df_from_dict(input_dict=min0_rmsd_dict, column_name='min0_all_rmsd_no_loop')
-    min2_rmsd_df = df_from_dict(input_dict=min2_rmsd_dict, column_name='min2_all_rmsd_no_loop')
-    avg_plddt_df = df_from_dict(input_dict=avg_plddt_dict, column_name='avg_plddt_no_loop')
-    avg_pae_df = df_from_dict(input_dict=avg_pae_dict, column_name='avg_pae_no_loop')
+        min_rmsd_df = df_from_dict(input_dict=min_rmsd_dict, column_name='min0_all_rmsd_no_loop')
+        avg_plddt_df = df_from_dict(input_dict=avg_plddt_dict, column_name='avg_plddt_no_loop')
+        avg_pae_df = df_from_dict(input_dict=avg_pae_dict, column_name='avg_pae_no_loop')
 
-    all_df = pd.merge(min0_rmsd_df, min2_rmsd_df, on='design_id')
-    all_df = pd.merge(all_df, avg_plddt_df, on='design_id')
-    all_df = pd.merge(all_df, avg_pae_df, on='design_id')
+        all_df = pd.merge(min_rmsd_df, avg_plddt_df, on='design_id')
+        all_df = pd.merge(all_df, avg_pae_df, on='design_id')
 
-    all_df.to_csv(f'{outdir}/af2_metrics.csv')
+        all_df.to_csv(f'{outdir}/af2_metrics.csv')
+
+    else:
+        #do msd processing
+        pass  # Placeholder to avoid syntax error; replace with actual logic
+
+        #load starting state poses
+        min0_pose = pyrosetta.pose_from_pdb(min0_path)
+        min2_pose = pyrosetta.pose_from_pdb(min2_path)
+
+        colab_file_list = os.listdir(colab_outdir)
+
+        min0_rmsd_dict = {}
+        min2_rmsd_dict = {}
+        avg_plddt_dict = {}
+        avg_pae_dict = {}
+
+        #calculate RMSD to min0 and min2 states
+        for colab_file in colab_file_list:
+
+            if colab_file.endswith('.pdb'):
+                #get rmsd
+                colab_pose = pyrosetta.pose_from_pdb(colab_outdir+'/'+colab_file) #af_pose
+
+                colab_filename = colab_file.split('.')[0] #file
+
+                rmsd_to_min0 = calculate_cc_rmsd(min0_pose, colab_pose)
+                rmsd_to_min2 = calculate_cc_rmsd(min2_pose, colab_pose)
+                
+                min0_rmsd_dict[colab_filename] = rmsd_to_min0
+                min2_rmsd_dict[colab_filename] = rmsd_to_min2
+
+                #get avg plddt across non-loop residues
+                loop_residues, rosetta_loop_residues = get_loop_resn(colab_pose)
+
+                json_file = colab_file.replace('.pdb', '.json')
+                json_file = json_file.replace('unrelaxed', 'scores')
+
+                avg_plddt = calculate_avg_plddt(colab_outdir+'/'+json_file, loop_residues)
+
+                avg_plddt_dict[colab_filename] = avg_plddt
+
+                #get avg pae across non-loop residues
+                avg_pae = calculate_avg_pae(colab_outdir+'/'+json_file, loop_residues)
+
+                avg_pae_dict[colab_filename] = avg_pae
+        
+        min0_rmsd_df = df_from_dict(input_dict=min0_rmsd_dict, column_name='min0_all_rmsd_no_loop')
+        min2_rmsd_df = df_from_dict(input_dict=min2_rmsd_dict, column_name='min2_all_rmsd_no_loop')
+        avg_plddt_df = df_from_dict(input_dict=avg_plddt_dict, column_name='avg_plddt_no_loop')
+        avg_pae_df = df_from_dict(input_dict=avg_pae_dict, column_name='avg_pae_no_loop')
+
+        all_df = pd.merge(min0_rmsd_df, min2_rmsd_df, on='design_id')
+        all_df = pd.merge(all_df, avg_plddt_df, on='design_id')
+        all_df = pd.merge(all_df, avg_pae_df, on='design_id')
+
+        all_df.to_csv(f'{outdir}/af2_metrics.csv')
 
 #pdb file: 13632_ALFA_52_07144_ALFA_52_t_01_9_unrelaxed_rank_005_alphafold2_multimer_v3_model_5_seed_000.pdb
 #pae file: 13632_ALFA_52_07144_ALFA_52_t_01_999_predicted_aligned_error_v1.json
