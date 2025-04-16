@@ -4,64 +4,101 @@ import argparse
 
 ##### FUNCTIONS #####
 	
-def fasta_to_df(fname, method='MPNN'):
+def fasta_to_df(fname, state='SSD', method='MPNN'):
     '''
     Converts a fasta file of sequences to a pandas dataframe.
     Adapted from Robert Alberstein's MPNN_utils 2022
 
     Parameters:
     fname (str): Path to fasta file. 
+
+    state (str): Either 'SSD' (single state design) or 'MSD' (multistate design).
     
-    method (str): Either 'MPNN' for ProteinMPNN or 'F2S' Frame2seq
+    method (str): Either 'MPNN' for ProteinMPNN or 'F2S' Frame2seq.
 
     Returns:
     df: Returns a df with sequence and score info.
     '''
     #TODO: add for multistate
+    method = method.upper()
+    state = state.upper()
+
     all_data = []
 
-    if method == 'MPNN':
+    if state == 'SSD':
+        if method == 'MPNN':
 
-        design_name = None
-        with open(fname, "r") as fin:
-            #get name of design backbone
-            orig_info = fin.readline()[1:-1]
-            design_name = orig_info.split()[0].split(", ")[0][1:-1]
+            design_name = None
+            with open(fname, "r") as fin:
+                #get name of design backbone
+                orig_info = fin.readline()[1:-1]
+                design_name = orig_info.split()[0].split(", ")[0][1:-1]
 
-            for line in fin:
-                if (line.startswith(">")):
-                    seq_info = line[1:-1].split(", ")
-                    all_data.append([
-					    float(seq_info[0].split("=")[-1]),
-					    int(seq_info[1].split("=")[-1]),
-					    float(seq_info[2].split("=")[-1]),
-					    float(seq_info[3].split("=")[-1])
-				    ])
-                    all_data[-1].append(fin.readline()[:-1])
+                for line in fin:
+                    if (line.startswith(">")):
+                        seq_info = line[1:-1].split(", ")
+                        all_data.append([
+					        float(seq_info[0].split("=")[-1]),
+					        int(seq_info[1].split("=")[-1]),
+					        float(seq_info[2].split("=")[-1]),
+					        float(seq_info[3].split("=")[-1])
+				        ])
+                        all_data[-1].append(fin.readline()[:-1])
 
-        df = pd.DataFrame(all_data, columns=["T", "sample", "score", "seq_recovery", "sequence"])
-        df.index.name = 'Name'
-        df.reset_index(inplace=True)
-        df['seq_id'] = design_name + '_' + df['Name'].astype(str)
+            df = pd.DataFrame(all_data, columns=["T", "sample", "score", "seq_recovery", "sequence"])
+            df.index.name = 'Name'
+            df.reset_index(inplace=True)
+            df['seq_id'] = design_name + '_' + df['Name'].astype(str)
 
-    elif method == 'F2S':
+        elif method == 'F2S':
 
-        with open(fname, "r") as fin:
-            design_name = fname.split('.fasta')[0].replace('A_seq', '') #TODO: fix hardcoded for chain A
+            with open(fname, "r") as fin:
+                design_name = fname.split('.fasta')[0].replace('A_seq', '') #TODO: fix hardcoded for chain A
 
-            for line in fin:
-                if (line.startswith(">")):
-                    seq_info = line[1:-1].split(" ")
-                    all_data.append([
-					    seq_info[1].split("=")[-1],
-					    seq_info[2].split("=")[-1], #TODO: seq_recovery-split on % and convert to float
-					    float(seq_info[3].split("=")[-1]),
-                        float(seq_info[4].split("=")[-1])
-				    ])
-                    all_data[-1].append(fin.readline()[:-1])
+                for line in fin:
+                    if (line.startswith(">")):
+                        seq_info = line[1:-1].split(" ")
+                        all_data.append([
+					        seq_info[1].split("=")[-1],
+					        seq_info[2].split("=")[-1], #TODO: seq_recovery-split on % and convert to float
+					        float(seq_info[3].split("=")[-1]),
+                            float(seq_info[4].split("=")[-1])
+				        ])
+                        all_data[-1].append(fin.readline()[:-1])
 
-        df = pd.DataFrame(all_data, columns=["chain", "seq_recovery", "score", "T", "sequence"])
-        df['seq_id'] = design_name
+            df = pd.DataFrame(all_data, columns=["chain", "seq_recovery", "score", "T", "sequence"])
+            df['seq_id'] = design_name
+
+    elif state == 'MSD':
+        if method == 'MPNN':
+
+            design_name = None
+            with open(fname, "r") as fin:
+                #get name of design backbones
+                orig_info = fin.readline()[1:-1]
+                design_name = orig_info.split()[0].split(", ")[0][:-1]
+
+                for line in fin:
+                    if (line.startswith(">")):
+                        seq_info = line[1:-1].split(", ")
+                        all_data.append([
+                            float(seq_info[0].split("=")[-1]),
+                            int(seq_info[1].split("=")[-1]),
+                            float(seq_info[2].split("=")[-1]),
+                            float(seq_info[3].split("=")[-1])
+                        ])
+                        seq = None
+                        seq = fin.readline().split("/")[0]
+                        all_data[-1].append(seq)
+
+            df = pd.DataFrame(all_data, columns=["T", "sample", "score", "seq_recovery", "sequence"])
+            df.index.name = 'Name'
+            df.reset_index(inplace=True)
+            df['seq_id'] = design_name + '_' + df['Name'].astype(str)
+        
+        elif method == 'F2S':
+            df = pd.DataFrame()
+            print('F2S not implemented for MSD')
 
     return df
 
@@ -85,7 +122,7 @@ def write_df_to_fastas(df, loop_seq='', loop_cutpoint=None, single_chain_input=T
     Directory in the current working directory with fasta files.
     '''
     cwd = os.getcwd()
-    outdir = f'{cwd}/fastas_for_colabfold'
+    outdir = f'{cwd}/{loop_seq}_fastas_for_colabfold'
     os.mkdir(outdir)
 
     new_seq_dict = {}
@@ -135,6 +172,7 @@ def write_df_to_fastas(df, loop_seq='', loop_cutpoint=None, single_chain_input=T
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--state', type=str, default='SSD')
     parser.add_argument('--method', type=str, default='MPNN')
     parser.add_argument('--loop', type=str, default='')
     parser.add_argument('--cutpoint', type=int, default=None)
@@ -149,12 +187,12 @@ if __name__ == '__main__':
 
     for file in files:
         if file.endswith(('.fa', '.fasta')):
-            df = fasta_to_df(file, args.method)
+            df = fasta_to_df(file, args.state, args.method)
             all_seqs_dfs_to_concat.append(df)
     
     all_seqs_df = pd.concat(all_seqs_dfs_to_concat)
-    all_seqs_df.to_csv(f"{indir}/{args.method}_all_seqs_og.csv")
+    all_seqs_df.to_csv(f"{indir}/{args.method}_{args.loop}_all_seqs_og.csv")
 
     new_seqs_df = write_df_to_fastas(all_seqs_df, loop_cutpoint=args.cutpoint, loop_seq=args.loop, single_chain_input=args.single_chain)
-    new_seqs_df.to_csv(f"{indir}/{args.method}_all_seqs_for_colabfold.csv")
+    new_seqs_df.to_csv(f"{indir}/{args.method}_{args.loop}_all_seqs_for_colabfold.csv")
 
