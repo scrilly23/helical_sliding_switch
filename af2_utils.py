@@ -348,13 +348,8 @@ if __name__ == "__main__":
 
         all_df.to_csv(f'{outdir}/af2_metrics.csv')
 
-    else:
+    elif args.multi_state is True:
         #do msd processing
-        pass  # Placeholder to avoid syntax error; replace with actual logic
-
-        #load starting state poses
-        min0_pose = pyrosetta.pose_from_pdb(min0_path)
-        min2_pose = pyrosetta.pose_from_pdb(min2_path)
 
         colab_file_list = os.listdir(colab_outdir)
 
@@ -367,6 +362,15 @@ if __name__ == "__main__":
         for colab_file in colab_file_list:
 
             if colab_file.endswith('.pdb'):
+                #get name of colab pose to get min states
+                min0_pdb_name = f'{colab_file.split('_')[0]}_{colab_file.split('_')[1]}_ALFA_{colab_file.split('_')[3]}.pdb'
+                min2_pdb_name = f'{colab_file.split('_')[0]}_{colab_file.split('_')[7]}_ALFA_{colab_file.split('_')[3]}.pdb'
+
+                #load min poses
+                #load starting state poses
+                min0_pose = pyrosetta.pose_from_pdb(f'{args.min0_bb_dir}/{min0_pdb_name}')
+                min2_pose = pyrosetta.pose_from_pdb(f'{args.min2_bb_dir}/{min2_pdb_name}')
+
                 #get rmsd
                 colab_pose = pyrosetta.pose_from_pdb(colab_outdir+'/'+colab_file) #af_pose
 
