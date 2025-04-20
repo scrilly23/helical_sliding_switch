@@ -360,14 +360,16 @@ if __name__ == "__main__":
 
         #calculate RMSD to min0 and min2 states
         for colab_file in colab_file_list:
+            #20230321_00731_ALFA_53_20230321_08331_ALFA_53_1_unrelaxed_rank_001_alphafold2_multimer_v3_model_4_seed_000.pdb
+            #20230321_00731_ALFA_53.pdb
+            #20230321_53_ALFA_53.pdb
 
             if colab_file.endswith('.pdb'):
                 #get name of colab pose to get min states
-                min0_pdb_name = f'{colab_file.split('_')[0]}_{colab_file.split('_')[1]}_ALFA_{colab_file.split('_')[3]}.pdb'
-                min2_pdb_name = f'{colab_file.split('_')[0]}_{colab_file.split('_')[7]}_ALFA_{colab_file.split('_')[3]}.pdb'
+                min0_pdb_name = f"{colab_file.split('_')[0]}_{colab_file.split('_')[1]}_ALFA_{colab_file.split('_')[3]}.pdb"
+                min2_pdb_name = f"{colab_file.split('_')[0]}_{colab_file.split('_')[5]}_ALFA_{colab_file.split('_')[3]}.pdb"
 
                 #load min poses
-                #load starting state poses
                 min0_pose = pyrosetta.pose_from_pdb(f'{args.min0_bb_dir}/{min0_pdb_name}')
                 min2_pose = pyrosetta.pose_from_pdb(f'{args.min2_bb_dir}/{min2_pdb_name}')
 
