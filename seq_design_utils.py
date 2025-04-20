@@ -135,7 +135,6 @@ def write_df_to_fastas(df, loop_seq='', loop_cutpoint=None, single_chain_input=T
             #designed as single chain, predicted as single chain 
             #no sequence added
             if loop_cutpoint is None:
-                print('oh no!')
                 with open(f"{outdir}/{row['seq_id']}.fa", "w") as fout:
                     fout.write(f">{row['seq_id']}\n{one_chain}\n")
                 new_seq_dict[row['seq_id']] = one_chain
