@@ -9,12 +9,9 @@ def get_pdb_filename(input_fhread):
     
     pdb_identifier = None
     for line in input_fhread:
-        if ('COILED COILS' in line) and ('result' in line):
-            #don't know why but the pdb identifier is sometimes .pdm and sometimes .pdb
-            #@TODO:figure out why socket output doing this
-            #could be due to filename length
-            #temp fix for this below
-            line = line.replace('.pdm', '.pdb')
+        if ('attempting to open' in line):
+            
+            line = line.split('"')[1]
             pdb_identifier = line.split('.pdb')[0]
 
     return pdb_identifier
@@ -63,6 +60,7 @@ def get_num_heptads(input_df):
         h2_heptads = row['h2_reg'].count('abcdefg')
         h2_num_heptads_dict[row['design_id']] = h2_heptads
 
+    #TODO: reconfigure with .map
     h1_num_heptads_df = df_from_dict(h1_num_heptads_dict, column_name='h1_num_heptads')
     h2_num_heptads_df = df_from_dict(h2_num_heptads_dict, column_name='h2_num_heptads')
 
