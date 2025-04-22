@@ -10,7 +10,7 @@ def get_pdb_filename(input_fhread):
     pdb_identifier = None
     for line in input_fhread:
         if ('attempting to open' in line):
-            
+
             line = line.split('"')[1]
             pdb_identifier = line.split('.pdb')[0]
 
@@ -259,14 +259,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--indir", help="path to directory with socket output files")
-    parser.add_argument("--pdbheader", help="header of pdb files to search socket outputs for")
     parser.add_argument("--outdir", help="path to directory to dump summary csvs")
     parser.add_argument("--fileheader", help="header for output files")
 
     args = parser.parse_args()
 
     indir = args.indir
-    pdb_header = args.pdbheader
     outdir= args.outdir
     file_header = args.fileheader
 
@@ -289,7 +287,7 @@ if __name__ == '__main__':
                 pdb_id = get_pdb_filename(fhread)
 
                 for index, line in enumerate(fhread):
-                    if (line.startswith(pdb_header)) and ('result' in line):
+                    if (f'{pdb_id}.pdb' in line) and ('result' in line):
                         if 'NO COILED COILS' in line:
                             cc_dict[pdb_id] = 0
                         elif 'COILED COILS PRESENT' in line:
