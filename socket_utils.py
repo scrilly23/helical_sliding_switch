@@ -16,23 +16,23 @@ def get_pdb_filename(input_fhread):
 
     return pdb_identifier
 
-def get_socket_call(input_fhread):
-     cc_dict = {}
+# def get_socket_call(input_fhread):
+#      cc_dict = {}
 
-    for index, line in enumerate(fhread):
-        if 'Finished' in line:
-            result_line = fhread[index-1]
+#     for index, line in enumerate(fhread):
+#         if 'Finished' in line:
+#             result_line = fhread[index-1]
             
-            if 'NO COILED COILS' in result_line:
-                cc_dict[pdb_id] = 0
+#             if 'NO COILED COILS' in result_line:
+#                 cc_dict[pdb_id] = 0
 
-            elif 'COILED COILS PRESENT' in result_line:
-                cc_dict[pdb_id] = 1
+#             elif 'COILED COILS PRESENT' in result_line:
+#                 cc_dict[pdb_id] = 1
 
-            else:
-                cc_dict[pdb_id] = ''
+#             else:
+#                 cc_dict[pdb_id] = ''
     
-    return cc_dict
+#     return cc_dict
 
 def df_from_dict(input_dict, column_name, index_name = 'design_id'):
     '''
