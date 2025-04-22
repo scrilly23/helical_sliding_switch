@@ -6,15 +6,33 @@ import argparse
 
 ####FUNCTIONS####
 def get_pdb_filename(input_fhread):
-    
+    #TODO: get this from Finsihed index -1
     pdb_identifier = None
-    for line in input_fhread:
-        if ('attempting to open' in line):
 
-            line = line.split('"')[1]
+    for index,line in enumerate(input_fhread):
+        if 'Finished' in line:
+            pdb_line = input_fhread[index-1]
             pdb_identifier = line.split('.pdb')[0]
 
     return pdb_identifier
+
+def get_socket_call(input_fhread):
+     cc_dict = {}
+
+    for index, line in enumerate(fhread):
+        if 'Finished' in line:
+            result_line = fhread[index-1]
+            
+            if 'NO COILED COILS' in result_line:
+                cc_dict[pdb_id] = 0
+
+            elif 'COILED COILS PRESENT' in result_line:
+                cc_dict[pdb_id] = 1
+
+            else:
+                cc_dict[pdb_id] = ''
+    
+    return cc_dict
 
 def df_from_dict(input_dict, column_name, index_name = 'design_id'):
     '''
@@ -287,11 +305,15 @@ if __name__ == '__main__':
                 pdb_id = get_pdb_filename(fhread)
 
                 for index, line in enumerate(fhread):
-                    if (f'{pdb_id}.pdb' in line) and ('result' in line):
-                        if 'NO COILED COILS' in line:
+                    if 'Finished' in line:
+                        result_line = fhread[index-1]
+            
+                        if 'NO COILED COILS' in result_line:
                             cc_dict[pdb_id] = 0
-                        elif 'COILED COILS PRESENT' in line:
+
+                        elif 'COILED COILS PRESENT' in result_line:
                             cc_dict[pdb_id] = 1
+
                         else:
                             cc_dict[pdb_id] = ''
                     if line.startswith('assigning heptad to helix 0'):
