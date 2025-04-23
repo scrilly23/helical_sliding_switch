@@ -6,13 +6,15 @@ import argparse
 
 ####FUNCTIONS####
 def get_pdb_filename(input_fhread):
-    #TODO: get this from Finsihed index -1
     pdb_identifier = None
 
     for index,line in enumerate(input_fhread):
         if 'Finished' in line:
             pdb_line = input_fhread[index-1]
-            pdb_identifier = line.split('.pdb')[0]
+            pdb_identifier = pdb_line.split()[0] #beware if pdb filename too long, .pdb may be missing
+
+            if '.' in pdb_identifier:
+                pdb_identifier = pdb_identifier.split('.')[0]
 
     return pdb_identifier
 
@@ -78,12 +80,9 @@ def get_num_heptads(input_df):
         h2_heptads = row['h2_reg'].count('abcdefg')
         h2_num_heptads_dict[row['design_id']] = h2_heptads
 
-    #TODO: reconfigure with .map
-    h1_num_heptads_df = df_from_dict(h1_num_heptads_dict, column_name='h1_num_heptads')
-    h2_num_heptads_df = df_from_dict(h2_num_heptads_dict, column_name='h2_num_heptads')
-
-    new_df = input_df.merge(h1_num_heptads_df, how='left', on='design_id')
-    new_df = new_df.merge(h2_num_heptads_df, how='left', on='design_id')
+    new_df = input_df.copy()
+    new_df['h1_num_heptads'] = new_df['design_id'].map(h1_num_heptads_dict)
+    new_df['h2_num_heptads'] = new_df['design_id'].map(h2_num_heptads_dict)
 
     return new_df
 
@@ -119,12 +118,11 @@ def get_num_ad(input_df):
         h2_d = row['h2_reg'].count('d')
         h2_ad = h2_a + h2_d
         h2_num_ad_dict[row['design_id']] = h2_ad
+    
+    new_df = input_df.copy()
 
-    h1_num_ad_df = df_from_dict(h1_num_ad_dict, column_name='h1_num_ad')
-    h2_num_ad_df = df_from_dict(h2_num_ad_dict, column_name='h2_num_ad')
-
-    new_df = input_df.merge(h1_num_ad_df, how='left', on='design_id')
-    new_df = new_df.merge(h2_num_ad_df, how='left', on='design_id')
+    new_df['h1_num_ad'] = new_df['design_id'].map(h1_num_ad_dict)
+    new_df['h2_num_ad'] = new_df['design_id'].map(h2_num_ad_dict)
 
     return new_df
 
@@ -296,48 +294,47 @@ if __name__ == '__main__':
     h1_non_canon_dict = {}
     h2_non_canon_dict = {}
 
-    for path, subdirs, files in os.walk(indir):
-        for file in files:
-            if 'socket_msd_bbs.sh.o' in file:
-                fh = open(path+'/'+file, encoding='utf-8', errors='ignore')
-                fhread = fh.readlines()
+    for file in os.listdir(indir):
+        if 'socket_msd_bbs.sh.o' in file:
+            fh = open(f'{indir}/{file}', encoding='utf-8', errors='ignore')
+            fhread = fh.readlines()
 
-                pdb_id = get_pdb_filename(fhread)
+            pdb_id = get_pdb_filename(fhread)
 
-                for index, line in enumerate(fhread):
-                    if 'Finished' in line:
-                        result_line = fhread[index-1]
+            for index, line in enumerate(fhread):
+                if 'Finished' in line:
+                    result_line = fhread[index-1]
             
-                        if 'NO COILED COILS' in result_line:
-                            cc_dict[pdb_id] = 0
+                    if 'NO COILED COILS' in result_line:
+                        cc_dict[pdb_id] = 0
 
-                        elif 'COILED COILS PRESENT' in result_line:
-                            cc_dict[pdb_id] = 1
+                    elif 'COILED COILS PRESENT' in result_line:
+                        cc_dict[pdb_id] = 1
 
-                        else:
-                            cc_dict[pdb_id] = ''
-                    if line.startswith('assigning heptad to helix 0'):
-                        h1_seq = fhread[index+2]
-                        h1_reg = fhread[index+3]
-                        h1_seq_dict[pdb_id] = h1_seq
-                        h1_reg_dict[pdb_id] = h1_reg
-
-                        h1_non_canon = fhread[index+6]
-                        h1_number_non_canon = h1_non_canon[10]
-                        h1_non_canon_dict[pdb_id] = h1_number_non_canon
-                    if line.startswith('assigning heptad to helix 1'):
-                        h2_seq = fhread[index+2]
-                        h2_reg = fhread[index+3]
-                        h2_seq_dict[pdb_id] = h2_seq
-                        h2_reg_dict[pdb_id] = h2_reg
-
-                        h2_non_canon = fhread[index+6]
-                        h2_number_non_canon = h2_non_canon[10]
-                        h2_non_canon_dict[pdb_id] = h2_number_non_canon
                     else:
-                        pass
+                        cc_dict[pdb_id] = ''
+                elif line.startswith('assigning heptad to helix 0'):
+                    h1_seq = fhread[index+2]
+                    h1_reg = fhread[index+3]
+                    h1_seq_dict[pdb_id] = h1_seq
+                    h1_reg_dict[pdb_id] = h1_reg
 
-                fh.close()
+                    h1_non_canon = fhread[index+6]
+                    h1_number_non_canon = h1_non_canon[10]
+                    h1_non_canon_dict[pdb_id] = h1_number_non_canon
+                elif line.startswith('assigning heptad to helix 1'):
+                    h2_seq = fhread[index+2]
+                    h2_reg = fhread[index+3]
+                    h2_seq_dict[pdb_id] = h2_seq
+                    h2_reg_dict[pdb_id] = h2_reg
+
+                    h2_non_canon = fhread[index+6]
+                    h2_number_non_canon = h2_non_canon[10]
+                    h2_non_canon_dict[pdb_id] = h2_number_non_canon
+                else:
+                    pass
+
+            fh.close()
 
 
     list_of_dicts = [h1_seq_dict, h1_reg_dict, h2_seq_dict, h2_reg_dict, h1_non_canon_dict, h2_non_canon_dict]
