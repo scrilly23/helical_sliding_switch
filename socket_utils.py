@@ -344,9 +344,7 @@ if __name__ == '__main__':
 
     for index, dict in enumerate(list_of_dicts):
         new_colname = list_of_col_names[index]
-        temp_df = df_from_dict(dict, new_colname)
-
-        socket_call_df = socket_call_df.merge(temp_df, how='left', on='design_id')
+        socket_call_df[new_colname] = socket_call_df['design_id'].map(dict)
 
     socket_call_df.to_csv(f'{outdir}/{file_header}_socket_filtered.csv')
 
