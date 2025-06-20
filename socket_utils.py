@@ -135,49 +135,24 @@ def heptad_to_upper(input_string, split_char = 'r '):
 
     return new_string
 
+
 def make_heptad_strings(reg_string, seq_string):
-    a_list = []
-    b_list = []
-    c_list = []
-    d_list = []
-    e_list = []
-    f_list = []
-    g_list = []
+    heptads_dict = {'a_residues' : [],
+                    'b_residues' : [],
+                    'c_residues' : [],
+                    'd_residues' : [],
+                    'e_residues' : [],
+                    'f_residues' : [],
+                    'g_residues' : []}
     
     for index, char in enumerate(reg_string):
-        if char == 'A':
-            a_list.append(seq_string[index])
-        elif char == 'B':
-            b_list.append(seq_string[index])
-        elif char == 'C':
-            c_list.append(seq_string[index])
-        elif char == 'D':
-            d_list.append(seq_string[index])
-        elif char == 'E':
-            e_list.append(seq_string[index])
-        elif char == 'F':
-            f_list.append(seq_string[index])
-        elif char == 'G':
-            g_list.append(seq_string[index])
-        else:
-            continue
+        if char.isupper():
+            key = char.lower() + '_residues'
+            if key in heptads_dict:
+                heptads_dict[key].append(seq_string[index])
     
-    a_string = ''.join(a_list)
-    b_string = ''.join(b_list)
-    c_string = ''.join(c_list)
-    d_string = ''.join(d_list)
-    e_string = ''.join(e_list)
-    f_string = ''.join(f_list)
-    g_string = ''.join(g_list)
-
-    heptads_dict = {}
-    heptads_dict['a_residues'] = a_string
-    heptads_dict['b_residues'] = b_string
-    heptads_dict['c_residues'] = c_string
-    heptads_dict['d_residues'] = d_string
-    heptads_dict['e_residues'] = e_string
-    heptads_dict['f_residues'] = f_string
-    heptads_dict['g_residues'] = g_string
+    for k, v in heptads_dict.items():
+        heptads_dict[k] = ''.join(v)
 
     return heptads_dict
 
