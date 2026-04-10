@@ -3,6 +3,7 @@ import pandas as pd
 import time
 import os
 import glob
+import sys
 from argparse import ArgumentParser
 from typing import Iterator, Tuple
 
@@ -124,6 +125,7 @@ def main():
     parser.add_argument("fastq_gz_dir", type=str, help="Path to the directory containing (merged) FASTQ.gz files")
     parser.add_argument("outdir", type=str, help="Output directory for results")
     parser.add_argument("--save_seqs", action="store_true", dest="save_seqs", help="Whether to save all intermediate sequences to CSV")
+    parser.add_argument('--designs', nargs='?', const=None, default=None, help="filter for seqs from ordered designs df passed as optional argument")
     args = parser.parse_args()
     fastq_gz_dir = args.fastq_gz_dir
     outdir = args.outdir
@@ -185,6 +187,20 @@ def main():
         if save_seqs:
             df.to_csv(os.path.join(outdir, f"{file_id}_all_sequences_with_protein.csv"), index=False)
         seq_count_df.to_csv(os.path.join(outdir, f"{file_id}_counts.csv"), index=False)
+
+        #search for seqs which match ordered designs
+        if args.designs is not None:
+            designed_seqs_df = pd.read_csv(args.designs)
+            designed_seqs_df = designed_seqs_df.rename(columns={'Name':'design'})
+
+            #filter seq_count_df for seqs which match designs
+            matching_seqs_df = seq_count_df[seq_count_df['protein_sequence'].isin(designed_seqs_df['Sequence'])]
+            matching_seqs_df.to_csv(os.path.join(outdir, f"{file_id}_matching_sequences.csv"), index=False)
+
+
+        print(f"Total reads: {df.shape[0]}")
+        print(f"Number of reads that map to library: {seq_count_df.shape[0]}") #change to sum of count col
+        print(f"Number of counts that map to library: {seq_count_df['count'].sum()}") #change to sum of count col
 
 # Example usage
 if __name__ == "__main__":
