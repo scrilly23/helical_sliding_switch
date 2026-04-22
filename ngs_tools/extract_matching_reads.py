@@ -136,6 +136,8 @@ def main():
     print(f"Processing FASTQ.gz files in directory: {fastq_gz_dir}")
     print(f"Output directory: {outdir}")
 
+    dfs_to_concat = []
+
     for fastq_file in glob.glob(os.path.join(fastq_gz_dir, "*.gz")):
 
         print(f"Processing file: {os.path.basename(fastq_file)}")
@@ -146,14 +148,14 @@ def main():
             df = fastq_gz_to_dataframe(fastq_file)
             
             print(f"Loaded {len(df)} sequences")
-            print("\nDataFrame info:")
-            print(df.info())
+            # print("\nDataFrame info:")
+            # print(df.info())
             
-            print("\nFirst few records:")
-            print(df.head())
+            # print("\nFirst few records:")
+            # print(df.head())
             
-            print(f"\nSequence length statistics:")
-            print(df['sequence_length'].describe())
+            # print(f"\nSequence length statistics:")
+            # print(df['sequence_length'].describe())
             
             # Optional: Save to CSV
             if save_seqs:
@@ -179,11 +181,11 @@ def main():
         df['protein_sequence'] = df['seq_to_translate'].apply(lambda x: safe_translate(x) if x not in [None, "lizard"] else x)
         end = time.time()
 
-        print(f"Time to process {len(df)} sequences: {end - start:.2f} seconds, average {((end - start)/len(df)):.5f} seconds/sequence")
+        # print(f"Time to process {len(df)} sequences: {end - start:.2f} seconds, average {((end - start)/len(df)):.5f} seconds/sequence")
         
         seq_count_df = df['protein_sequence'].value_counts().reset_index()
         seq_count_df.columns = ['protein_sequence', 'count']
-        print(seq_count_df.head(20))
+        # print(seq_count_df.head(20))
         if save_seqs:
             df.to_csv(os.path.join(outdir, f"{file_id}_all_sequences_with_protein.csv"), index=False)
         seq_count_df.to_csv(os.path.join(outdir, f"{file_id}_counts.csv"), index=False)
@@ -197,10 +199,19 @@ def main():
             matching_seqs_df = seq_count_df[seq_count_df['protein_sequence'].isin(designed_seqs_df['Sequence'])]
             matching_seqs_df.to_csv(os.path.join(outdir, f"{file_id}_matching_sequences.csv"), index=False)
 
-
+            dfs_to_concat.append(matching_seqs_df)
+        
         print(f"Total reads: {df.shape[0]}")
-        print(f"Number of reads that map to library: {seq_count_df.shape[0]}") #change to sum of count col
-        print(f"Number of counts that map to library: {seq_count_df['count'].sum()}") #change to sum of count col
+        print(f"Number of seqs mising flanks: {no_flank_df.shape[0]}")
+        print(f"Number of seqs with error in translation: {(df['protein_sequence'] == 'lizard').sum()}")
+        print(f"Number of counts that map to library: {matching_seqs_df['count'].sum()}\n")
+    
+    if len(dfs_to_concat) != 0:
+        print(f"Concatenating count tables for {len(dfs_to_concat)} files with matching sequences...")
+        counts_df = pd.concat(dfs_to_concat, ignore_index=True, axis=1)
+        counts_df.to_csv(os.path.join(outdir, f"count_table.csv"), index=False)
+    else:
+        print(f"Mapped sequences option not specified or no matching sequences found, skipping count table concatenation.\n")
 
 # Example usage
 if __name__ == "__main__":
