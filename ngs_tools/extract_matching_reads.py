@@ -206,12 +206,13 @@ def main():
         print(f"Number of seqs with error in translation: {(df['protein_sequence'] == 'lizard').sum()}")
         print(f"Number of counts that map to library: {matching_seqs_df['count'].sum()}\n")
     
-    if len(dfs_to_concat) != 0:
-        print(f"Concatenating count tables for {len(dfs_to_concat)} files with matching sequences...")
-        counts_df = pd.concat(dfs_to_concat, ignore_index=True, axis=1)
-        counts_df.to_csv(os.path.join(outdir, f"count_table.csv"), index=False)
-    else:
-        print(f"Mapped sequences option not specified or no matching sequences found, skipping count table concatenation.\n")
+    # TODO: fix concantenation of matching seqs df
+    # if len(dfs_to_concat) != 0:
+    #     print(f"Concatenating count tables for {len(dfs_to_concat)} files with matching sequences...")
+    #     counts_df = pd.concat(dfs_to_concat, ignore_index=True, axis=1)
+    #     counts_df.to_csv(os.path.join(outdir, f"count_table.csv"), index=False)
+    # else:
+    #     print(f"Mapped sequences option not specified or no matching sequences found, skipping count table concatenation.\n")
 
 # Example usage
 if __name__ == "__main__":
